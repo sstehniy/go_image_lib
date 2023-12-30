@@ -28,28 +28,9 @@ func NewAsciiConverter(img image.Image) *AsciiConverter {
 	height := img.Bounds().Max.Y - img.Bounds().Min.Y
 	width := img.Bounds().Max.X - img.Bounds().Min.X
 	numPixels := height * width
-	var scale float64 = 1
-	if numPixels > 20000 {
-		scale = math.Log10(float64(numPixels)) / 10
-	}
-	if numPixels > 100000 {
-		scale = math.Log10(float64(numPixels)) / 25
-	}
-	if numPixels > 200000 {
-		scale = math.Log10(float64(numPixels)) / 35
-	}
-	if numPixels > 500000 {
-		scale = math.Log10(float64(numPixels)) / 50
-	}
-	if numPixels > 1000000 {
-		scale = math.Log10(float64(numPixels)) / 75
-	}
-	if numPixels > 2000000 {
-		scale = math.Log10(float64(numPixels)) / 100
-	}
-	if numPixels > 5000000 {
-		scale = math.Log10(float64(numPixels)) / 175
-	}
+	// Calculate scale based on a logarithmic function for smoother transitions
+	var scale float64 = math.Log10(float64(numPixels)) / (math.Log10(float64(numPixels)) + 50) // Adjust the denominator based on desired scaling
+
 	grayscaleArray := image.NewGray(img.Bounds())
 	draw.Draw(grayscaleArray, grayscaleArray.Bounds(), img, img.Bounds().Min, draw.Src)
 	avgContrast := calcAvgContrast(grayscaleArray)
@@ -130,61 +111,3 @@ func (c *AsciiConverter) Convert() {
 		print("\n")
 	}
 }
-
-// func ConvertImageToAscii(img image.Image, scale float64) {
-// 	height := img.Bounds().Max.Y - img.Bounds().Min.Y
-// 	width := img.Bounds().Max.X - img.Bounds().Min.X
-
-// 	grayscaleArray := image.NewGray(img.Bounds())
-// 	draw.Draw(grayscaleArray, grayscaleArray.Bounds(), img, img.Bounds().Min, draw.Src)
-// 	avgContrast := calcAvgContrast(grayscaleArray)
-// 	println("avgContrast:", avgContrast)
-// 	gscale := gscale1
-// 	if avgContrast < 90 {
-// 		gscale = gscale2
-// 	}
-// 	reducedHeight := int(float64(height) * IMAGE_HEIGHT_REDUCTION)
-// 	scaledHeight := int(float64(reducedHeight) * scale)
-// 	scaledWidth := int(float64(width) * scale)
-
-// 	println("height:", height, "width:", width)
-// 	println("reducedHeight:", reducedHeight, "scaledHeight:", scaledHeight, "scaledWidth:", scaledWidth)
-
-// 	transformedColorsArray := make([][]color.Color, scaledHeight)
-// 	for i := 0; i < len(transformedColorsArray); i++ {
-// 		transformedColorsArray[i] = make([]color.Color, scaledWidth)
-// 	}
-
-// 	for i := 0; i < scaledHeight; i++ {
-// 		for j := 0; j < scaledWidth; j++ {
-// 			origY := int(float64(i) / IMAGE_HEIGHT_REDUCTION / scale)
-// 			origX := int(float64(j) / scale)
-
-// 			if origY >= height {
-// 				origY = height - 1
-// 			}
-// 			if origX >= width {
-// 				origX = width - 1
-// 			}
-
-// 			sampledPixel := grayscaleArray.At(origX, origY)
-
-// 			transformedColorsArray[i][j] = sampledPixel
-// 		}
-// 	}
-
-// 	transformedImage := convertMatrixToImage(transformedColorsArray)
-
-// 	grayScaled := image.NewGray(image.Rect(0, 0, scaledWidth, scaledHeight))
-// 	draw.Draw(grayScaled, grayScaled.Bounds(), transformedImage, transformedImage.Bounds().Min, draw.Src)
-
-// 	for i := 0; i < scaledHeight; i++ {
-// 		for j := 0; j < scaledWidth; j++ {
-// 			idx := int(float64(grayScaled.GrayAt(j, i).Y) / 255 * float64(len(gscale)-1))
-
-// 			print(string(gscale[idx]))
-// 		}
-// 		print("\n")
-// 	}
-
-// }

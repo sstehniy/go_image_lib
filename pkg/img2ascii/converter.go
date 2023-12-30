@@ -1,80 +1,190 @@
 package img2ascii
 
 import (
-	"fmt"
 	"image"
 	"image/color"
+	"image/draw"
 	_ "image/jpeg"
 	_ "image/png"
+	"math"
 )
 
 const (
-	gscale1 = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~i!lI;:,\"^`"
-	gscale2 = "@%#*+=-:. "
+	gscale1                = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~i!lI;:,\"^`"
+	gscale2                = "@%#*+=-:. "
+	IMAGE_HEIGHT_REDUCTION = 0.45
 )
 
-func ConvertImageToAscii(img image.Image, scale float64) {
+type AsciiConverter struct {
+	Image    image.Image
+	Scale    float64
+	Detailed bool
+	Width    int
+	Height   int
+	GScaled  *image.Gray
+}
+
+func NewAsciiConverter(img image.Image) *AsciiConverter {
 	height := img.Bounds().Max.Y - img.Bounds().Min.Y
 	width := img.Bounds().Max.X - img.Bounds().Min.X
-	colorsArray := make([][]color.Color, height)
-	for i := 0; i < len(colorsArray); i++ {
-		colorsArray[i] = make([]color.Color, width)
+	numPixels := height * width
+	var scale float64 = 1
+	if numPixels > 20000 {
+		scale = math.Log10(float64(numPixels)) / 10
 	}
-	for i := 0; i < height; i++ {
-		for j := 0; j < width; j++ {
-			colorsArray[i][j] = img.At(j, i)
-		}
+	if numPixels > 100000 {
+		scale = math.Log10(float64(numPixels)) / 25
 	}
-	fmt.Println("1")
-	// print old height and width
-	fmt.Println(height, width)
-
-	newWidth := int(float64(width) * scale)
-	newHeight := int(float64(height) * scale)
-	// print new height and width
-	fmt.Println(newHeight, newWidth)
-	brightnessMatrix := make([][]byte, newHeight)
-	for i := 0; i < len(brightnessMatrix); i++ {
-		brightnessMatrix[i] = make([]byte, newWidth)
+	if numPixels > 200000 {
+		scale = math.Log10(float64(numPixels)) / 35
 	}
-
-	fmt.Println("2")
-	for i := 0; i < newHeight; i++ {
-		for j := 0; j < newWidth; j++ {
-			x1 := int(float64(i) / scale)
-			y1 := int(float64(j) / scale)
-			x2 := int(float64(i+1) / scale)
-			y2 := int(float64(j+1) / scale)
-			brightnessMatrix[i][j] = byte(getAvarageL(&img, x1, y1, x2, y2) / 256 / float64(len(gscale1)))
-		}
+	if numPixels > 500000 {
+		scale = math.Log10(float64(numPixels)) / 50
 	}
-	fmt.Println("3")
-	fmt.Println(len(brightnessMatrix), len(brightnessMatrix[0]))
-	for i := 0; i < newHeight; i++ {
-		for j := 0; j < newWidth; j++ {
-			fmt.Print(string(gscale1[brightnessMatrix[i][j]]))
-		}
-		fmt.Print("\n")
+	if numPixels > 1000000 {
+		scale = math.Log10(float64(numPixels)) / 75
+	}
+	if numPixels > 2000000 {
+		scale = math.Log10(float64(numPixels)) / 100
+	}
+	if numPixels > 5000000 {
+		scale = math.Log10(float64(numPixels)) / 175
+	}
+	grayscaleArray := image.NewGray(img.Bounds())
+	draw.Draw(grayscaleArray, grayscaleArray.Bounds(), img, img.Bounds().Min, draw.Src)
+	avgContrast := calcAvgContrast(grayscaleArray)
+	println("avgContrast:", avgContrast)
+	detailed := true
+	if avgContrast < 90 {
+		detailed = false
 	}
 
+	return &AsciiConverter{
+		Image:    img,
+		Scale:    scale,
+		Width:    width,
+		Height:   height,
+		Detailed: detailed,
+		GScaled:  grayscaleArray,
+	}
 }
 
-func getAvarageL(img *image.Image, x1 int, y1 int, x2 int, y2 int) float64 {
-	var sum float64 = 0
-	maxX := (*img).Bounds().Max.X
-	maxY := (*img).Bounds().Max.Y
-	if x2 > maxX {
-		x2 = maxX
+func (c *AsciiConverter) WithScale(scale float64) *AsciiConverter {
+	c.Scale = scale
+	return c
+}
+
+func (c *AsciiConverter) WithDetailed(detailed bool) *AsciiConverter {
+	c.Detailed = detailed
+	return c
+}
+
+func (c *AsciiConverter) Convert() {
+	if c.Image == nil {
+		panic("Image must be set")
 	}
-	if y2 > maxY {
-		y2 = maxY
+	reducedHeight := int(float64(c.Height) * IMAGE_HEIGHT_REDUCTION)
+	scaledHeight := int(float64(reducedHeight) * c.Scale)
+	scaledWidth := int(float64(c.Width) * c.Scale)
+
+	println("height:", c.Height, "width:", c.Width)
+	println("reducedHeight:", reducedHeight, "scaledHeight:", scaledHeight, "scaledWidth:", scaledWidth)
+
+	transformedColorsArray := make([][]color.Color, scaledHeight)
+	for i := 0; i < len(transformedColorsArray); i++ {
+		transformedColorsArray[i] = make([]color.Color, scaledWidth)
 	}
-	for i := x1; i < x2; i++ {
-		for j := y1; j < y2; j++ {
-			r, g, b, _ := (*img).At(j, i).RGBA()
-			sum += 0.299*float64(r) + 0.587*float64(g) + 0.114*float64(b)
+
+	for i := 0; i < scaledHeight; i++ {
+		for j := 0; j < scaledWidth; j++ {
+			origY := int(float64(i) / IMAGE_HEIGHT_REDUCTION / c.Scale)
+			origX := int(float64(j) / c.Scale)
+
+			if origY >= c.Height {
+				origY = c.Height - 1
+			}
+			if origX >= c.Width {
+				origX = c.Width - 1
+			}
+
+			sampledPixel := c.GScaled.At(origX, origY)
+
+			transformedColorsArray[i][j] = sampledPixel
 		}
 	}
-	sum /= float64((x2 - x1) * (y2 - y1))
-	return sum
+
+	transformedImage := convertMatrixToImage(transformedColorsArray)
+
+	grayScaled := image.NewGray(image.Rect(0, 0, scaledWidth, scaledHeight))
+	draw.Draw(grayScaled, grayScaled.Bounds(), transformedImage, transformedImage.Bounds().Min, draw.Src)
+	gscale := gscale1
+	if c.Detailed == false {
+		gscale = gscale2
+	}
+	for i := 0; i < scaledHeight; i++ {
+		for j := 0; j < scaledWidth; j++ {
+			idx := int(float64(grayScaled.GrayAt(j, i).Y) / 255 * float64(len(gscale)-1))
+
+			print(string(gscale[idx]))
+		}
+		print("\n")
+	}
 }
+
+// func ConvertImageToAscii(img image.Image, scale float64) {
+// 	height := img.Bounds().Max.Y - img.Bounds().Min.Y
+// 	width := img.Bounds().Max.X - img.Bounds().Min.X
+
+// 	grayscaleArray := image.NewGray(img.Bounds())
+// 	draw.Draw(grayscaleArray, grayscaleArray.Bounds(), img, img.Bounds().Min, draw.Src)
+// 	avgContrast := calcAvgContrast(grayscaleArray)
+// 	println("avgContrast:", avgContrast)
+// 	gscale := gscale1
+// 	if avgContrast < 90 {
+// 		gscale = gscale2
+// 	}
+// 	reducedHeight := int(float64(height) * IMAGE_HEIGHT_REDUCTION)
+// 	scaledHeight := int(float64(reducedHeight) * scale)
+// 	scaledWidth := int(float64(width) * scale)
+
+// 	println("height:", height, "width:", width)
+// 	println("reducedHeight:", reducedHeight, "scaledHeight:", scaledHeight, "scaledWidth:", scaledWidth)
+
+// 	transformedColorsArray := make([][]color.Color, scaledHeight)
+// 	for i := 0; i < len(transformedColorsArray); i++ {
+// 		transformedColorsArray[i] = make([]color.Color, scaledWidth)
+// 	}
+
+// 	for i := 0; i < scaledHeight; i++ {
+// 		for j := 0; j < scaledWidth; j++ {
+// 			origY := int(float64(i) / IMAGE_HEIGHT_REDUCTION / scale)
+// 			origX := int(float64(j) / scale)
+
+// 			if origY >= height {
+// 				origY = height - 1
+// 			}
+// 			if origX >= width {
+// 				origX = width - 1
+// 			}
+
+// 			sampledPixel := grayscaleArray.At(origX, origY)
+
+// 			transformedColorsArray[i][j] = sampledPixel
+// 		}
+// 	}
+
+// 	transformedImage := convertMatrixToImage(transformedColorsArray)
+
+// 	grayScaled := image.NewGray(image.Rect(0, 0, scaledWidth, scaledHeight))
+// 	draw.Draw(grayScaled, grayScaled.Bounds(), transformedImage, transformedImage.Bounds().Min, draw.Src)
+
+// 	for i := 0; i < scaledHeight; i++ {
+// 		for j := 0; j < scaledWidth; j++ {
+// 			idx := int(float64(grayScaled.GrayAt(j, i).Y) / 255 * float64(len(gscale)-1))
+
+// 			print(string(gscale[idx]))
+// 		}
+// 		print("\n")
+// 	}
+
+// }

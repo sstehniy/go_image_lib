@@ -10,19 +10,26 @@ import (
 )
 
 func main() {
-	absPath, _ := filepath.Abs("./assets/images/14996914924_f9380a07df_c.jpg")
-	file, err := os.Open(absPath)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+	paths := []string{
+		"./assets/images/sunset-anime-comet-stars-scenery-digital-art-4k-wallpaper-uhdpaper.com-771@0@i.jpg",
 	}
-	defer file.Close()
-	img, imageType, err := image.Decode(file)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	fmt.Println("Image type:", imageType)
 
-	img2ascii.ConvertImageToAscii(img, 0.1)
+	for _, path := range paths {
+		absPath, _ := filepath.Abs(path)
+		file, err := os.Open(absPath)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		defer file.Close()
+		img, imageType, err := image.Decode(file)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		fmt.Println("Image type:", imageType)
+
+		converter := img2ascii.NewAsciiConverter(img)
+		converter.Convert()
+	}
 }

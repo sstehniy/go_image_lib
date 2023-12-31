@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
-	"github.com/sstehniy/go_image_lib/pkg/img2ascii"
+	"github.com/sstehniy/gopix/pkg/img2ascii"
 )
 
 var asciiCmd = &cobra.Command{

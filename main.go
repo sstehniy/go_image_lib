@@ -1,6 +1,6 @@
 package main
 
-import "github.com/sstehniy/go_image_lib/cmd"
+import "github.com/sstehniy/gopix/cmd"
 
 func main() {
 	cmd.Execute()

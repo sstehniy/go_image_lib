@@ -1,4 +1,4 @@
-module github.com/sstehniy/go_image_lib
+module github.com/sstehniy/gopix
 
 go 1.21.5
 

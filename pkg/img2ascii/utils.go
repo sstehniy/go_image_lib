@@ -7,8 +7,7 @@ import (
 )
 
 func convertMatrixToImage(matrix [][]color.Color) image.Image {
-	height := len(matrix)
-	width := len(matrix[0])
+	height, width := len(matrix), len(matrix[0])
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 	for i := 0; i < height; i++ {
 		for j := 0; j < width; j++ {
@@ -18,7 +17,7 @@ func convertMatrixToImage(matrix [][]color.Color) image.Image {
 	return img
 }
 
-func calcAvgContrast(img *image.Gray) int {
+func calcAvgContrast(img *image.Gray) float64 {
 	avgLum := 0.0
 	for i := 0; i < len(img.Pix); i++ {
 		avgLum += float64(img.Pix[i])
@@ -31,5 +30,5 @@ func calcAvgContrast(img *image.Gray) int {
 	}
 	variance := varianceSum / float64(len(img.Pix))
 
-	return int(math.Sqrt(variance))
+	return math.Sqrt(variance)
 }

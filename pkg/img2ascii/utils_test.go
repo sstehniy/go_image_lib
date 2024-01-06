@@ -35,7 +35,7 @@ func TestCalcAvgContrast(t *testing.T) {
 	tests := []struct {
 		name     string
 		img      *image.Gray
-		expected int
+		expected float64
 	}{
 		{
 			name: "Test with uniform image",
@@ -53,7 +53,7 @@ func TestCalcAvgContrast(t *testing.T) {
 				Stride: 3,
 				Rect:   image.Rect(0, 0, 3, 3),
 			},
-			expected: 126,
+			expected: 126.71051872498808,
 		},
 	}
 

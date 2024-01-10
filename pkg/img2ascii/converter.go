@@ -1,6 +1,7 @@
 package img2ascii
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -77,6 +78,8 @@ func (c *AsciiConverter) Convert() {
 	}
 
 	for i := 0; i < scaledHeight; i++ {
+		fmt.Printf("\r%d%%", int(float64(i)/float64(scaledHeight)*100))
+
 		for j := 0; j < scaledWidth; j++ {
 			origY := int(float64(i) / IMAGE_HEIGHT_REDUCTION / c.Scale)
 			origX := int(float64(j) / c.Scale)
@@ -98,16 +101,16 @@ func (c *AsciiConverter) Convert() {
 
 	grayScaled := image.NewGray(image.Rect(0, 0, scaledWidth, scaledHeight))
 	draw.Draw(grayScaled, grayScaled.Bounds(), transformedImage, transformedImage.Bounds().Min, draw.Src)
-	gscale := gscale1
-	if c.Detailed == false {
-		gscale = gscale2
-	}
-	for i := 0; i < scaledHeight; i++ {
-		for j := 0; j < scaledWidth; j++ {
-			idx := int(float64(grayScaled.GrayAt(j, i).Y) / 255 * float64(len(gscale)-1))
+	// gscale := gscale1
+	// if c.Detailed == false {
+	// 	gscale = gscale2
+	// }
+	// for i := 0; i < scaledHeight; i++ {
+	// 	for j := 0; j < scaledWidth; j++ {
+	// 		idx := int(float64(grayScaled.GrayAt(j, i).Y) / 255 * float64(len(gscale)-1))
 
-			print(string(gscale[idx]))
-		}
-		print("\n")
-	}
+	// 		print(string(gscale[idx]))
+	// 	}
+	// 	print("\n")
+	// }
 }

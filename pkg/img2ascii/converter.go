@@ -6,8 +6,14 @@ import (
 	"image/color"
 	"image/draw"
 	_ "image/jpeg"
+	"image/png"
 	_ "image/png"
 	"math"
+	"os"
+
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/basicfont"
+	"golang.org/x/image/math/fixed"
 )
 
 const (
@@ -101,16 +107,39 @@ func (c *AsciiConverter) Convert() {
 
 	grayScaled := image.NewGray(image.Rect(0, 0, scaledWidth, scaledHeight))
 	draw.Draw(grayScaled, grayScaled.Bounds(), transformedImage, transformedImage.Bounds().Min, draw.Src)
-	// gscale := gscale1
-	// if c.Detailed == false {
-	// 	gscale = gscale2
-	// }
-	// for i := 0; i < scaledHeight; i++ {
-	// 	for j := 0; j < scaledWidth; j++ {
-	// 		idx := int(float64(grayScaled.GrayAt(j, i).Y) / 255 * float64(len(gscale)-1))
+	outputString := ""
+	gscale := gscale1
+	if c.Detailed == false {
+		gscale = gscale2
+	}
+	for i := 0; i < scaledHeight; i++ {
+		for j := 0; j < scaledWidth; j++ {
+			idx := int(float64(grayScaled.GrayAt(j, i).Y) / 255 * float64(len(gscale)-1))
+			outputString += string(gscale[idx])
+		}
+		outputString += "\n"
+	}
+	outputImg := image.NewRGBA(image.Rect(0, 0, scaledWidth, scaledHeight))
+	color := color.RGBA{0, 0, 0, 255}
+	point := fixed.Point26_6{fixed.Int26_6(0), fixed.Int26_6(0)}
+	d := &font.Drawer{
+		Dst:  outputImg,
+		Src:  image.NewUniform(color),
+		Face: basicfont.Face7x13,
+		Dot:  point,
+	}
+	d.DrawString(
+		outputString,
+	)
 
-	// 		print(string(gscale[idx]))
-	// 	}
-	// 	print("\n")
-	// }
+	f, err := os.Create("hello.png")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	if err := png.Encode(f, outputImg); err != nil {
+		panic(err)
+	}
+
 }

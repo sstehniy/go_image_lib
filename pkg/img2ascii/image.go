@@ -18,12 +18,12 @@ import (
 )
 
 const (
-	fontSize = 100
+	fontSize = 16
 )
 
-func ConvertToPNG(text string) ([]byte, error) {
-	fgColor := color.RGBA{0, 255, 255, 255}
-	bgColor := color.RGBA{255, 0, 0, 255}
+func ConvertToPNG(text string, width, height int) ([]byte, error) {
+	fgColor := color.RGBA{255, 255, 255, 255}
+	bgColor := color.RGBA{0, 0, 0, 255}
 	fg := image.NewUniform(fgColor)
 	bg := image.NewUniform(bgColor)
 	fontPath, err := filepath.Abs("./assets/fonts/Montserrat-Regular.ttf")
@@ -37,12 +37,9 @@ func ConvertToPNG(text string) ([]byte, error) {
 		fmt.Println(err)
 		return nil, err
 	}
-
-	width := len(strings.Split(text, "\n")[0])
-	height := len(strings.Split(text, "\n"))
 	// print width, height as struct
 
-	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	img := image.NewRGBA(image.Rect(0, 0, width*10, height*10))
 	ctx := freetype.NewContext()
 	draw.Draw(img, img.Bounds(), bg, image.Pt(0, 0), draw.Src)
 
@@ -63,11 +60,17 @@ func ConvertToPNG(text string) ([]byte, error) {
 	textYOffset := 10 + int(ctx.PointToFixed(fontSize)>>6)
 
 	pt := freetype.Pt(textXOffset, textYOffset)
-	for _, s := range text {
-		_, err := ctx.DrawString(strings.Replace(string(s), "\r", "", -1), pt)
-		if err != nil {
-			return nil, err
+	textSplitted := strings.Split(text, "\n")
+	for _, s := range textSplitted {
+		initialX := pt.X
+		for _, c := range s {
+			_, err := ctx.DrawString(strings.Replace(string(c), "\r", "", -1), pt)
+			if err != nil {
+				return nil, err
+			}
+			pt.X += ctx.PointToFixed(12)
 		}
+		pt.X = initialX
 		pt.Y += ctx.PointToFixed(fontSize * 1.5)
 	}
 

@@ -48,6 +48,14 @@ func NewAsciiConverter(img image.Image, detailed bool, scale float64) *AsciiConv
 	}
 }
 
+func (c AsciiConverter) GetWidth() int {
+	return c.Width
+}
+
+func (c AsciiConverter) GetHeight() int {
+	return c.Height
+}
+
 func (c *AsciiConverter) WithScale(scale float64) *AsciiConverter {
 	c.Scale = scale
 	return c

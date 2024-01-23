@@ -56,6 +56,14 @@ func (c AsciiConverter) GetHeight() int {
 	return c.Height
 }
 
+func (c AsciiConverter) GetScale() float64 {
+	return c.Scale
+}
+
+func (c AsciiConverter) GetScaledDims() (int, int) {
+	return int(float64(c.Width) * c.Scale), int(float64(c.Height) * c.Scale)
+}
+
 func (c *AsciiConverter) WithScale(scale float64) *AsciiConverter {
 	c.Scale = scale
 	return c

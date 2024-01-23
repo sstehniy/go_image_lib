@@ -66,7 +66,8 @@ var asciiCmd = &cobra.Command{
 			}
 			file.WriteString(outputStr)
 		case ".png":
-			imgBytes, err := img2ascii.ConvertToPNG(outputStr, converter.GetWidth(), converter.GetHeight())
+			width, height := converter.GetScaledDims()
+			imgBytes, err := img2ascii.ConvertToPNG(outputStr, width, height)
 			if err != nil {
 				fmt.Println(err)
 				os.Exit(1)

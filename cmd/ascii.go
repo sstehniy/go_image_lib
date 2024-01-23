@@ -43,6 +43,7 @@ var asciiCmd = &cobra.Command{
 		if len(output) == 0 {
 			println()
 			println(outputStr)
+			return
 		}
 
 		extension := filepath.Ext(output)

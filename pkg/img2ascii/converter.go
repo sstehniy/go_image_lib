@@ -30,6 +30,7 @@ func NewAsciiConverter(img image.Image, detailed bool, scale float64) *AsciiConv
 	numPixels := height * width
 	// Calculate scale based on a logarithmic function for smoother transitions
 	if scale == 0.0 {
+
 		scale = math.Log10(float64(numPixels)) / (math.Log10(float64(numPixels)) + 15) // Adjust the denominator based on desired scaling
 	}
 

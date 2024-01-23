@@ -24,9 +24,12 @@ const (
 func ConvertToPNG(text string, width, height int) ([]byte, error) {
 	fgColor := color.RGBA{255, 255, 255, 255}
 	bgColor := color.RGBA{0, 0, 0, 255}
-	width = width + 20
+	fmt.Println("width:", width)
+	fmt.Println("height:", height)
 	fg := image.NewUniform(fgColor)
 	bg := image.NewUniform(bgColor)
+	width = width * 16
+	height = height * 11
 	fontPath, err := filepath.Abs("./assets/fonts/Montserrat-Regular.ttf")
 	if err != nil {
 		fmt.Println(err)
@@ -40,7 +43,7 @@ func ConvertToPNG(text string, width, height int) ([]byte, error) {
 	}
 	// print width, height as struct
 
-	img := image.NewRGBA(image.Rect(0, 0, width*10, height*15))
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
 	ctx := freetype.NewContext()
 	draw.Draw(img, img.Bounds(), bg, image.Pt(0, 0), draw.Src)
 
@@ -62,6 +65,7 @@ func ConvertToPNG(text string, width, height int) ([]byte, error) {
 
 	pt := freetype.Pt(textXOffset, textYOffset)
 	textSplitted := strings.Split(text, "\n")
+
 	for _, s := range textSplitted {
 		initialX := pt.X
 		for _, c := range s {

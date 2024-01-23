@@ -1,19 +1,12 @@
 package img2ascii
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
 	_ "image/jpeg"
-	"image/png"
 	_ "image/png"
 	"math"
-	"os"
-
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/basicfont"
-	"golang.org/x/image/math/fixed"
 )
 
 const (
@@ -31,21 +24,19 @@ type AsciiConverter struct {
 	GScaled  *image.Gray
 }
 
-func NewAsciiConverter(img image.Image) *AsciiConverter {
+func NewAsciiConverter(img image.Image, detailed bool, scale float64) *AsciiConverter {
 	height := img.Bounds().Max.Y - img.Bounds().Min.Y
 	width := img.Bounds().Max.X - img.Bounds().Min.X
 	numPixels := height * width
 	// Calculate scale based on a logarithmic function for smoother transitions
-	var scale float64 = math.Log10(float64(numPixels)) / (math.Log10(float64(numPixels)) + 50) // Adjust the denominator based on desired scaling
+	if scale == 0.0 {
+		scale = math.Log10(float64(numPixels)) / (math.Log10(float64(numPixels)) + 15) // Adjust the denominator based on desired scaling
+	}
 
 	grayscaleArray := image.NewGray(img.Bounds())
 	draw.Draw(grayscaleArray, grayscaleArray.Bounds(), img, img.Bounds().Min, draw.Src)
 	avgContrast := calcAvgContrast(grayscaleArray)
 	println("avgContrast:", avgContrast)
-	detailed := true
-	if avgContrast < 90 {
-		detailed = false
-	}
 
 	return &AsciiConverter{
 		Image:    img,
@@ -67,7 +58,7 @@ func (c *AsciiConverter) WithDetailed(detailed bool) *AsciiConverter {
 	return c
 }
 
-func (c *AsciiConverter) Convert() {
+func (c *AsciiConverter) Convert() string {
 	if c.Image == nil {
 		panic("Image must be set")
 	}
@@ -84,8 +75,6 @@ func (c *AsciiConverter) Convert() {
 	}
 
 	for i := 0; i < scaledHeight; i++ {
-		fmt.Printf("\r%d%%", int(float64(i)/float64(scaledHeight)*100))
-
 		for j := 0; j < scaledWidth; j++ {
 			origY := int(float64(i) / IMAGE_HEIGHT_REDUCTION / c.Scale)
 			origX := int(float64(j) / c.Scale)
@@ -119,27 +108,6 @@ func (c *AsciiConverter) Convert() {
 		}
 		outputString += "\n"
 	}
-	outputImg := image.NewRGBA(image.Rect(0, 0, scaledWidth, scaledHeight))
-	color := color.RGBA{0, 0, 0, 255}
-	point := fixed.Point26_6{fixed.Int26_6(0), fixed.Int26_6(0)}
-	d := &font.Drawer{
-		Dst:  outputImg,
-		Src:  image.NewUniform(color),
-		Face: basicfont.Face7x13,
-		Dot:  point,
-	}
-	d.DrawString(
-		outputString,
-	)
 
-	f, err := os.Create("hello.png")
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
-
-	if err := png.Encode(f, outputImg); err != nil {
-		panic(err)
-	}
-
+	return outputString
 }

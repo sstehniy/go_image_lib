@@ -30,12 +30,11 @@ var asciiCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		defer file.Close()
-		img, imageType, err := image.Decode(file)
+		img, _, err := image.Decode(file)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		fmt.Println("Image type:", imageType)
 		println("Detailed:", detailed)
 		println("Scale:", scale)
 		converter := img2ascii.NewAsciiConverter(img, detailed, scale)
@@ -47,7 +46,6 @@ var asciiCmd = &cobra.Command{
 		}
 
 		extension := filepath.Ext(output)
-		fmt.Println(strings.ToLower(extension))
 
 		if strings.ToLower(extension) != ".txt" && strings.ToLower(extension) != ".png" {
 			fmt.Println("Please choose a valid file extension (.txt or .png)")

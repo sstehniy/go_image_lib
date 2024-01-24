@@ -7,6 +7,8 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"math"
+	"sort"
+	"sync"
 )
 
 const (
@@ -112,19 +114,68 @@ func (c *AsciiConverter) Convert() string {
 	transformedImage := convertMatrixToImage(transformedColorsArray)
 
 	grayScaled := image.NewGray(image.Rect(0, 0, scaledWidth, scaledHeight))
+
 	draw.Draw(grayScaled, grayScaled.Bounds(), transformedImage, transformedImage.Bounds().Min, draw.Src)
-	outputString := ""
+
 	gscale := gscale1
 	if c.Detailed == false {
 		gscale = gscale2
 	}
+	numWorkers := scaledHeight / 100
+	if numWorkers < 1 {
+		numWorkers = 1
+	}
+
+	tasks := make(chan int, scaledHeight)
+	outputChan := make(chan rowResult, scaledHeight)
+
+	var wg sync.WaitGroup
+	for w := 0; w < numWorkers; w++ {
+		wg.Add(1)
+		go worker(&wg, tasks, outputChan, *grayScaled, scaledWidth, gscale)
+	}
+
 	for i := 0; i < scaledHeight; i++ {
-		for j := 0; j < scaledWidth; j++ {
-			idx := int(float64(grayScaled.GrayAt(j, i).Y) / 255 * float64(len(gscale)-1))
-			outputString += string(gscale[idx])
-		}
-		outputString += "\n"
+		tasks <- i
+	}
+	close(tasks)
+
+	go func() {
+		wg.Wait()
+		close(outputChan)
+	}()
+
+	results := make([]rowResult, 0, scaledHeight)
+	for result := range outputChan {
+		results = append(results, result)
+	}
+
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].row < results[j].row
+	})
+
+	var outputString string
+	for _, result := range results {
+		outputString += result.data
 	}
 
 	return outputString
+}
+
+func worker(wg *sync.WaitGroup, tasks chan int, outputChan chan<- rowResult, grayScaled image.Gray, scaledWidth int, gscale string) {
+	defer wg.Done()
+	for i := range tasks {
+		var rowStr string
+		for j := 0; j < scaledWidth; j++ {
+			idx := int(float64(grayScaled.GrayAt(j, i).Y) / 255 * float64(len(gscale)-1))
+			rowStr += string(gscale[idx])
+		}
+		rowStr += "\n"
+		outputChan <- rowResult{row: i, data: rowStr}
+	}
+}
+
+type rowResult struct {
+	row  int
+	data string
 }
